@@ -1,0 +1,22 @@
+# mosquitto.conf - simple default
+pid_file C:/Program Files/mosquitto/mosquitto.pid
+
+persistence true
+persistence_location C:/Program Files/mosquitto/data/
+
+# default listener
+listener 1883
+allow_anonymous true
+
+# log to console+file
+log_type all
+connection_messages true
+log_dest file C:/Program Files/mosquitto/log/mosquitto.log
+log_dest stdout
+
+
+# stop service if running
+net stop mosquitto
+
+# run with config (console mode)
+"C:\Program Files\mosquitto\mosquitto.exe" -c "C:\Program Files\mosquitto\mosquitto.conf" -v

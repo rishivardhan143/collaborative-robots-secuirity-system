@@ -1,0 +1,122 @@
+/*
+  robot2.ino
+  Identical to robot1 but different id.
+*/
+
+#include <WiFi.h>
+#include <PubSubClient.h>
+
+const char* ssid = "POCO F5";
+const char* password = "Rishi@143";
+const char* mqtt_server = "10.80.254.160"; // <-- Broker IP
+const uint16_t mqtt_port = 1883;
+
+const char* robot_id = "robot2";
+const char* peer_id  = "robot1";
+
+unsigned long lastPublish = 0;
+const unsigned long publishInterval = 2000; // ms
+const unsigned long heartbeatTimeout = 7000; // ms
+
+unsigned long lastPeerHeartbeat = 0;
+
+WiFiClient espClient;
+PubSubClient client(espClient);
+
+void setup_wifi() {
+  delay(10);
+  Serial.print("\nConnecting to WiFi ");
+  Serial.print(ssid);
+  WiFi.begin(ssid, password);
+  unsigned long start = millis();
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(300);
+    Serial.print(".");
+    if (millis() - start > 15000) {
+      Serial.println("\nWiFi connect timeout. Rebooting...");
+      ESP.restart();
+    }
+  }
+  Serial.println("\nWiFi connected.");
+  Serial.print("IP: ");
+  Serial.println(WiFi.localIP());
+}
+
+void onMessage(char* topic, byte* payload, unsigned int length) {
+  String sTopic = String(topic);
+  String sPayload;
+  for (unsigned int i=0;i<length;i++) sPayload += (char)payload[i];
+
+  if (sTopic == String("robots/") + peer_id + "/heartbeat") {
+    lastPeerHeartbeat = millis();
+    Serial.println("Peer heartbeat received: " + sPayload);
+  }
+}
+
+void mqttConnect() {
+  while (!client.connected()) {
+    Serial.print("Connecting MQTT...");
+    String clientId = String("ESP32_") + robot_id;
+    if (client.connect(clientId.c_str())) {
+      Serial.println("connected");
+      client.subscribe(String("robots/").concat(peer_id).concat("/heartbeat").c_str());
+    } else {
+      Serial.print("failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" -- retrying");
+      delay(2000);
+    }
+  }
+}
+
+void publishHeartbeat() {
+  String topic = String("robots/") + robot_id + "/heartbeat";
+  String payload = String("{\"id\":\"") + robot_id + "\",\"ts\":" + String(millis()) + "}";
+  client.publish(topic.c_str(), payload.c_str(), true);
+}
+
+void publishData() {
+  int battery = random(60, 100);
+  float temp = random(300, 400) / 10.0;
+  char buf[128];
+  snprintf(buf, sizeof(buf), "{\"id\":\"%s\",\"battery\":%d,\"temp\":%.1f,\"ts\":%lu}", robot_id, battery, temp, millis());
+  client.publish(String("robots/").concat(robot_id).concat("/data").c_str(), buf);
+  Serial.println(String("Published data: ") + buf);
+}
+
+void publishAlert(String cause) {
+  String topic = "robots/alerts";
+  char buf[160];
+  snprintf(buf, sizeof(buf), "{\"alert_from\":\"%s\",\"cause\":\"%s\",\"ts\":%lu}", robot_id, cause.c_str(), millis());
+  client.publish(topic.c_str(), buf);
+  Serial.println("ALERT published: " + String(buf));
+}
+
+void setup() {
+  Serial.begin(115200);
+  delay(200);
+  randomSeed(analogRead(0));
+  setup_wifi();
+  client.setServer(mqtt_server, mqtt_port);
+  client.setCallback(onMessage);
+}
+
+void loop() {
+  if (!client.connected()) mqttConnect();
+  client.loop();
+
+  unsigned long now = millis();
+
+  if (now - lastPublish >= 2000) {
+    publishHeartbeat();
+    publishData();
+    lastPublish = now;
+  }
+
+  if (lastPeerHeartbeat != 0 && now - lastPeerHeartbeat > heartbeatTimeout) {
+    publishAlert(String("peer_missing_") + peer_id);
+    lastPeerHeartbeat = now;
+  }
+
+  delay(10);
+}

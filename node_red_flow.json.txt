@@ -1,0 +1,30 @@
+[
+  {
+    "id":"mqtt-in-data",
+    "type":"mqtt in",
+    "z":"flow1",
+    "name":"robot_data",
+    "topic":"robots/+/data",
+    "broker":"localbroker",
+    "x":180,"y":120,"wires":[["debug1","ui_text1"]]
+  },
+  {
+    "id":"mqtt-in-alert",
+    "type":"mqtt in",
+    "z":"flow1",
+    "name":"alerts",
+    "topic":"robots/alerts",
+    "broker":"localbroker",
+    "x":170,"y":200,"wires":[["debug2","ui_text2"]]
+  },
+  {
+    "id":"debug1","type":"debug","z":"flow1","name":"data debug","active":true,"tosidebar":true,"console":false,"complete":"payload","x":380,"y":120,"wires":[]},
+  {
+    "id":"debug2","type":"debug","z":"flow1","name":"alerts debug","active":true,"tosidebar":true,"console":false,"complete":"payload","x":380,"y":200,"wires":[]},
+  {
+    "id":"ui_text1","type":"ui_text","z":"flow1","group":"dashboardGroup","order":1,"width":0,"height":0,"label":"Latest data","format":"{{msg.payload}}","x":380,"y":160,"wires":[]},
+  {
+    "id":"ui_text2","type":"ui_text","z":"flow1","group":"dashboardGroup","order":2,"width":0,"height":0,"label":"Latest alerts","format":"{{msg.payload}}","x":380,"y":240,"wires":[]},
+  {
+    "id":"localbroker","type":"mqtt-broker","name":"local","broker":"127.0.0.1","port":"1883"}
+]

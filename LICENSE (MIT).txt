@@ -1,0 +1,10 @@
+Compress-Archive -Path .\microros-esp32-redundant-monitoring\* -DestinationPath microros-esp32-redundant-monitoring.zip
+
+---
+
+# 7 — GitHub / Zip / Upload quick commands (Windows)
+- Create repo & push (see README).
+- To zip folder quickly:
+```powershell
+# PowerShell from parent folder
+Compress-Archive -Path .\microros-esp32-redundant-monitoring\* -DestinationPath microros-esp32-redundant-monitoring.zip
